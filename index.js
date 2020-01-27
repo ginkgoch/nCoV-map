@@ -16,7 +16,9 @@ server.use(bodyParser());
  * in the next section, we are going to build the router.
  */
 const mapRouter = require('./routes/mapRouter');
+const infectionRouter = require('./routes/infectionRouter');
 server.use(mapRouter.routes()).use(mapRouter.allowedMethods());
+server.use(infectionRouter.routes()).use(infectionRouter.allowedMethods());
 server.listen(3000, () => {
     console.log('Server is listening on port 3000');
 });
