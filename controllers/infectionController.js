@@ -25,7 +25,7 @@ module.exports = class InfectionController {
     static getInfectionInfo(time) {
         if (!infectionCache.has(time)) {
             let infectionData = this._getInfectionInfo(time);
-            if (infectionData !== undefined) {
+            if (infectionData === undefined) {
                 return undefined;
             }
 

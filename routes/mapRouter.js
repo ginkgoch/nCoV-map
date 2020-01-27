@@ -5,7 +5,7 @@
 
 const Router = require('@koa/router');
 const mapController = require('../controllers/mapController');
-const infectionController = require('../controllers/infectionController');
+
 /** 
  * due to the RESTful service is stateless,
  * whenever getting one tile will create a map instance 
@@ -31,6 +31,16 @@ router.get('/maps/:name/:z/:x/:y', async ctx => {
     let buff = ctx.body = mapImage.toBuffer();
     ctx.type = 'png';
     ctx.length = buff.length;
+});
+
+router.get('/test', async ctx => {
+    let mapEngine = mapController.getInfectionMap();
+    let layer = mapEngine.layer('gadm36_CHN_1');
+    let source = layer.source;
+    await source.open();
+    let feature = await source.feature(1, 'all');
+    ctx.body = mapController.getFeatureCollection([feature]);
+    ctx.type = 'json';
 });
 
 module.exports = router;

@@ -3,8 +3,9 @@ const _ = require('lodash');
 const infection = require('./infectionController');
 const gk = require('ginkgoch-map').default.all;
 const { 
-    ShapefileFeatureSource, FeatureLayer, 
-    FillStyle, MapEngine, Srs ,
+    ShapefileFeatureSource, FeatureLayer,
+    ClassBreakStyle, FillStyle, TextStyle,
+    MapEngine, Srs ,
     FeatureCollection, Point,
     Projection
 } = gk;
@@ -40,7 +41,9 @@ let controller = {
 
     _getInfectionMap() {
         let layerCountries = controller._getLayer(`../data/cntry02.shp`, '#f0f0f0', '#636363');
-        let layerChn = controller._getChnLayer();
+        let layerChn = controller._getChnLayer(false);
+        layerChn.styles.push(controller._getClassBreakStyle('confirmedCount'));
+        layerChn.styles.push(new TextStyle('[NL_NAME_1]', 'black', 'arial 20px'));
         layerChn.source.dynamicFields.push(controller._getDynamicField('confirmedCount'));
         layerChn.source.dynamicFields.push(controller._getDynamicField('suspectedCount'));
         layerChn.source.dynamicFields.push(controller._getDynamicField('curedCount'));
@@ -97,12 +100,17 @@ let controller = {
         return layer;
     },
 
-    _getChnLayer() {
+    getFeatureCollection(features) {
+        let featureCollection = new FeatureCollection(features);
+        return featureCollection.toJSON();
+    },
+
+    _getChnLayer(withDefaultFill = true) {
         let filePath = path.resolve(__dirname, '../data/chn/gadm36_CHN_1.shp');
         let source = new ShapefileFeatureSource(filePath);
         source.projection = new Projection('WGS84', 'EPSG:900913');
         let layer = new FeatureLayer(source);
-        layer.styles.push(new FillStyle('#f0f0f0', '#636363', 1));
+        withDefaultFill && layer.styles.push(new FillStyle('#f0f0f0', '#636363', 1));
         return layer;
     },
 
@@ -113,7 +121,7 @@ let controller = {
     _nameAsInfectionMapper(field) {
         return feature => {
             const fullName = feature.properties.get('NL_NAME_1');
-            const simplified = fullName.split('|').unshift();
+            const simplified = fullName.split('|').pop();
             const infectionInfos = infection.getLatestInfectionInfo();
             const infectionInfo = _.find(infectionInfos.data, d => {
                 return simplified.includes(d.provinceShortName);
@@ -125,6 +133,17 @@ let controller = {
                 return infectionInfo[field];
             }
         };
+    },
+
+    _getClassBreakStyle(field) {
+        //return ClassBreakStyle.auto('fill', field, 2000, 0, 50, '#fee8c8', '#e6550d', '#636363', '#636363');
+        let style = new ClassBreakStyle(field);
+        style.classBreaks.push({ minimum: 1, maximum: 10, style: new FillStyle('#fef0d9', '#636363') });
+        style.classBreaks.push({ minimum: 10, maximum: 100, style: new FillStyle('#fdcc8a', '#636363') });
+        style.classBreaks.push({ minimum: 100, maximum: 500, style: new FillStyle('#fc8d59', '#636363') });
+        style.classBreaks.push({ minimum: 500, maximum: 1000, style: new FillStyle('#e34a33', '#636363') });
+        style.classBreaks.push({ minimum: 1000, maximum: Number.MAX_SAFE_INTEGER, style: new FillStyle('#e34a33', '#636363') });
+        return style;
     }
 } 
 
