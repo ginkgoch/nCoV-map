@@ -4,25 +4,28 @@
  */
 
 const Router = require('@koa/router');
-const controller = require('../controllers/mapController');
-
+const mapController = require('../controllers/mapController');
+const infectionController = require('../controllers/infectionController');
 /** 
  * due to the RESTful service is stateless,
  * whenever getting one tile will create a map instance 
  * which will slow down the performance.
  * so here we create a cache for map instances just reuse the map instance
  */
-const mapStatesCache = new Map();
 const router = new Router();
 
 router.get('/maps/:name/:z/:x/:y', async ctx => {
     let { name, x, y, z } = ctx.params;
-    if (!mapStatesCache.has(name)) {
-        let mapEngine = controller.initMap();
-        mapStatesCache.set(name, mapEngine);
+    let mapEngine = undefined;
+    switch (name) {
+        case 'infection':
+            mapEngine = mapController.getInfectionMap();
+            break;
+        default:
+            mapEngine = mapController.getDefaultMap();
+            break;
     }
 
-    let mapEngine = mapStatesCache.get(name);
     let mapImage = await mapEngine.xyz(x, y, z);
 
     let buff = ctx.body = mapImage.toBuffer();

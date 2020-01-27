@@ -1,7 +1,10 @@
+const _ = require('lodash');
 const path = require('path');
 const fs = require('fs');
 
 const dataDirPath = path.resolve(__dirname, '../data/infected');
+
+const infectionCache = new Map();
 
 module.exports = class InfectionController {
     static getDataPaths() {
@@ -20,6 +23,19 @@ module.exports = class InfectionController {
     }
 
     static getInfectionInfo(time) {
+        if (!infectionCache.has(time)) {
+            let infectionData = this._getInfectionInfo(time);
+            if (infectionData !== undefined) {
+                return undefined;
+            }
+
+            infectionCache.set(time, infectionData);
+        }
+
+        return infectionCache.get(time);
+    }
+
+    static _getInfectionInfo(time) {
         let timeList = this.getTimeList();
         if (!timeList.includes(time)) {
             return undefined;
@@ -57,5 +73,16 @@ module.exports = class InfectionController {
         }
 
         return { totalConfirmedCount, totalSuspectedCount, totalCuredCount, totalDeadCount };
+    }
+
+    static filterInfectionInfo(infectionInfo, query) {
+        let fields = ['provinceName', 'provinceShortName', 'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'];
+        if (query.fields !== undefined) {
+            fields = query.fields.split(',');
+        }
+    
+        if (!fields.includes('all')) {
+            infectionInfo.data = infectionInfo.data.map(i => _.pick(i, fields));
+        }
     }
 }

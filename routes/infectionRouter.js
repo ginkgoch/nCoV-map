@@ -1,4 +1,3 @@
-const _ = require('lodash');
 const Router = require('@koa/router');
 const controller = require('../controllers/infectionController');
 
@@ -12,7 +11,7 @@ router.get('/infection/timestamps/:time', async ctx => {
     let { time } = ctx.params;
     if (time === 'latest') {
         let infectionInfo = controller.getLatestInfectionInfo();
-        filterInfectionInfo(ctx, infectionInfo);
+        controller.filterInfectionInfo(infectionInfo, ctx.request.query);
         json(ctx, infectionInfo);
     } else {
         time = parseInt(time);
@@ -20,7 +19,7 @@ router.get('/infection/timestamps/:time', async ctx => {
         if (infectionInfo === undefined) {
             ctx.throw(404, `No infection data announced at ${new Date(time)}.`);
         } else {            
-            filterInfectionInfo(ctx, infectionInfo);
+            controller.filterInfectionInfo(infectionInfo, ctx.request.query);
             json(ctx, infectionInfo);
         }
     }
@@ -31,15 +30,4 @@ module.exports = router;
 function json(ctx, body) {
     ctx.body = body;
     ctx.type = 'json';
-}
-
-function filterInfectionInfo(ctx, infectionInfo) {
-    let fields = ['provinceName', 'provinceShortName', 'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'];
-    if (ctx.request.query.fields !== undefined) {
-        fields = ctx.request.query.fields.split(',');
-    }
-
-    if (!fields.includes('all')) {
-        infectionInfo.data = infectionInfo.data.map(i => _.pick(i, fields));
-    }
 }
