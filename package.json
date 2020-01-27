@@ -12,10 +12,11 @@
     "@koa/router": "^8.0.6",
     "axios": "^0.19.2",
     "canvas": "^2.6.1",
-    "ginkgoch-map": "^1.7.3",
+    "ginkgoch-map": "^1.7.7",
     "koa": "^2.11.0",
     "koa-bodyparser": "^4.2.1",
     "koa-static": "^5.0.0",
-    "leaflet": "^1.6.0"
+    "leaflet": "^1.6.0",
+    "lodash": "^4.17.15"
   }
 }

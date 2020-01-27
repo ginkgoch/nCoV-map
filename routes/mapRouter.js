@@ -20,7 +20,7 @@ router.get('/maps/:name/:z/:x/:y', async ctx => {
     if (!mapStatesCache.has(name)) {
         let mapEngine = controller.initMap();
         mapStatesCache.set(name, mapEngine);
-    } 
+    }
 
     let mapEngine = mapStatesCache.get(name);
     let mapImage = await mapEngine.xyz(x, y, z);

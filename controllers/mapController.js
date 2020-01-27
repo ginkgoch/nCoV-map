@@ -12,6 +12,7 @@ require('ginkgoch-map/native/node').init();
 let controller = {
     initMap() {
         let layerCountries = controller._getLayer(`../data/cntry02.shp`, '#f0f0f0', '#636363');
+        let layerChn = controller._getChnLayer();
 
         // Create a engine with size 256 * 256 pixels
         let mapEngine = new MapEngine(256, 256);
@@ -21,6 +22,7 @@ let controller = {
 
         // Push the feature layer into map
         mapEngine.pushLayer(layerCountries);
+        mapEngine.pushLayer(layerChn);
 
         return mapEngine;
     },
@@ -51,6 +53,15 @@ let controller = {
         // Define a style for feature layer
         layer.styles.push(new FillStyle(fillColor, strokeColor, 1));
 
+        return layer;
+    },
+
+    _getChnLayer() {
+        let filePath = path.resolve(__dirname, '../data/chn/gadm36_CHN_1.shp');
+        let source = new ShapefileFeatureSource(filePath);
+        source.projection = new Projection('WGS84', 'EPSG:900913');
+        let layer = new FeatureLayer(source);
+        layer.styles.push(new FillStyle('#f0f0f0', '#636363', 1));
         return layer;
     }
 } 
