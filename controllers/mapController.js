@@ -111,9 +111,8 @@ let controller = {
     },
 
     _getChnLayer(withDefaultFill = true) {
-        let filePath = path.resolve(__dirname, '../data/chn/gadm36_CHN_1.shp');
+        let filePath = path.resolve(__dirname, '../data/chn/gadm36_CHN_1_3857.shp');
         let source = new ShapefileFeatureSource(filePath);
-        source.projection = new Projection('WGS84', 'EPSG:900913');
         let layer = new FeatureLayer(source);
         withDefaultFill && layer.styles.push(new FillStyle('#f0f0f0', '#636363', 1));
         return layer;
