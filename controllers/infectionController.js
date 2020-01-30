@@ -81,9 +81,12 @@ module.exports = class InfectionController {
             fields = query.fields.split(',');
         }
     
+        infectionInfo = { ...infectionInfo };
         if (!fields.includes('all')) {
             infectionInfo.data = infectionInfo.data.map(i => _.pick(i, fields));
         }
+
+        return infectionInfo;
     }
 
     static filterInfectionCityInfo(infectionInfo, query) {
@@ -92,9 +95,12 @@ module.exports = class InfectionController {
             fields = query.fields.split(',');
         }
 
+        infectionInfo = { ...infectionInfo };
         infectionInfo.data = _.flatMap(infectionInfo.data, p => p.cities);
         if (!fields.includes('all')) {
             infectionInfo.data = infectionInfo.data.map(i => _.pick(i, fields));
         }
+
+        return infectionInfo;
     }
 }
