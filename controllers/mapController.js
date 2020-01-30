@@ -1,131 +1,90 @@
 const path = require('path');
 const _ = require('lodash');
 const infection = require('./infectionController');
-const gk = require('ginkgoch-map').default.all;
+const config = require('../shared/mapConfig');
+const utils = require('../shared/mapUtils');
+
 const { 
     ShapefileFeatureSource, FeatureLayer,
     ClassBreakStyle, FillStyle, TextStyle,
-    MapEngine, Srs ,
-    FeatureCollection, Point,
-    Projection
-} = gk;
+    MapEngine, Srs
+} = require('ginkgoch-map').default.all;
 
 require('ginkgoch-map/native/node').init();
 
-const mapEntityCache = new Map();
+const worldFilePath = `../data/cntry02.shp`;
+const provinceFilePath = `../data/chn/gadm36_CHN_1_3857.shp`;
  
 let controller = {
     getDefaultMap() {
-        return controller._getMapEntityByName('default', controller._getDefaultMap);
-    },
+        return utils.getCachedMapEngine('default', () => {
+            let layerWorld = controller._getWorldLayer(worldFilePath);
+            let layerChina = controller._getProvinceLayer();
 
-    _getDefaultMap() {
-        let layerCountries = controller._getLayer(`../data/cntry02.shp`, '#f0f0f0', '#636363');
-        let layerChn = controller._getChnLayer();
+            let mapEngine = new MapEngine(256, 256);
+            mapEngine.srs = new Srs('EPSG:900913');
+            mapEngine.pushLayer(layerWorld);
+            mapEngine.pushLayer(layerChina);
 
-        // Create a engine with size 256 * 256 pixels
-        let mapEngine = new MapEngine(256, 256);
-
-        // Init the map rendering spatial reference system
-        mapEngine.srs = new Srs('EPSG:900913');
-
-        // Push the feature layer into map
-        mapEngine.pushLayer(layerCountries);
-        mapEngine.pushLayer(layerChn);
-        return mapEngine;
+            return mapEngine;
+        });
     },
 
     getInfectionMap() {
-        return controller._getMapEntityByName('infection', controller._getInfectionMap);
-    },
+        return utils.getCachedMapEngine('infection', () => {
+            let layerWorld = controller._getWorldLayer(worldFilePath);
+            let layerChina = controller._getProvinceLayer(false);
 
-    _getInfectionMap() {
-        let layerCountries = controller._getLayer(`../data/cntry02.shp`, '#f0f0f0', '#636363');
-        let layerChn = controller._getChnLayer(false);
-        layerChn.source.dynamicFields.push(controller._getDynamicField('confirmedCount'));
-        layerChn.source.dynamicFields.push(controller._getDynamicField('suspectedCount'));
-        layerChn.source.dynamicFields.push(controller._getDynamicField('curedCount'));
-        layerChn.source.dynamicFields.push(controller._getDynamicField('deadCount'));
-        layerChn.styles.push(controller._getClassBreakStyle('confirmedCount'));
+            let mapEngine = new MapEngine(256, 256);
+            mapEngine.srs = new Srs('EPSG:900913');
+            mapEngine.pushLayer(layerWorld);
+            mapEngine.pushLayer(layerChina);
 
-        let textStyle = new TextStyle('[NL_NAME_1]', 'black', TextStyle.normalizeFont('ARIAL', 16, 'bolder'));
-        textStyle.lineWidth = 1;
-        textStyle.strokeStyle = 'white';
-        layerChn.styles.push(textStyle);
-        layerChn.margin = 40;
-
-        // Create a engine with size 256 * 256 pixels
-        let mapEngine = new MapEngine(256, 256);
-
-        // Init the map rendering spatial reference system
-        mapEngine.srs = new Srs('EPSG:900913');
-
-        // Push the feature layer into map
-        mapEngine.pushLayer(layerCountries);
-        mapEngine.pushLayer(layerChn);
-
-        return mapEngine;
-    },
-
-    _getMapEntityByName(name, createMapHandler) {
-        if (!mapEntityCache.has(name)) {
-            let mapEntity = createMapHandler();
-            mapEntityCache.set(name, mapEntity);
-        }
-        
-        return mapEntityCache.get(name);
-    },
-
-    async xyz(mapEngine, z, x, y) {
-        return await mapEngine.xyz(x, y, z);
-    },
-
-    async intersection(mapEngine, coordinate, zoom) {
-        let features = await mapEngine.intersection(new Point(coordinate.x, coordinate.y), 'WGS84', zoom, 5);
-        let projection = new Projection('WGS84', mapEngine.srs.projection);
-        features = features.flatMap(f => f.features);
-        features.forEach(f => {
-            f.geometry = projection.inverse(f.geometry);
+            return mapEngine;
         });
-        return new FeatureCollection(features).toJSON();
     },
 
-    _getLayer(filePath, fillColor, strokeColor) {
+    _getWorldLayer(filePath) {
         let sourcePath = path.resolve(__dirname, filePath);
-
-        // Create a feature source instance
         let source = new ShapefileFeatureSource(sourcePath);
-        
-        // Create a feature layer instance
         let layer = new FeatureLayer(source);
+        layer.styles.push(new FillStyle(config.DEFAULT_FILL, config.DEFAULT_STROKE, config.DEFAULT_STROKE_WIDTH));
+        return layer;
+    },
 
-        // Define a style for feature layer
-        layer.styles.push(new FillStyle(fillColor, strokeColor, 1));
+    _getProvinceLayer(defaultFill = true) {
+        let layer = controller._getChinaLayer(provinceFilePath, defaultFill);
+        let source = layer.source;
+        source.dynamicFields.push(controller._getDynamicField('confirmedCount'));
+        source.dynamicFields.push(controller._getDynamicField('suspectedCount'));
+        source.dynamicFields.push(controller._getDynamicField('curedCount'));
+        source.dynamicFields.push(controller._getDynamicField('deadCount'));
+
+        if (!defaultFill) {
+            layer.styles.push(controller._getClassBreakStyle('confirmedCount'));
+
+            let textStyle = new TextStyle('[NL_NAME_1]', 'black', TextStyle.normalizeFont('ARIAL', 16, 'bolder'));
+            textStyle.lineWidth = 1;
+            textStyle.strokeStyle = 'white';
+            layer.styles.push(textStyle);
+            layer.margin = 40;
+        }
 
         return layer;
     },
 
-    getFeatureCollection(features) {
-        let featureCollection = new FeatureCollection(features);
-        return featureCollection.toJSON();
-    },
-
-    _getChnLayer(withDefaultFill = true) {
-        let filePath = path.resolve(__dirname, '../data/chn/gadm36_CHN_1_3857.shp');
+    _getChinaLayer(filePath, defaultFill = true) {
+        filePath = path.resolve(__dirname, filePath);
         let source = new ShapefileFeatureSource(filePath);
         let layer = new FeatureLayer(source);
-        withDefaultFill && layer.styles.push(new FillStyle('#f0f0f0', '#636363', 1));
+
+        defaultFill && layer.styles.push(new FillStyle('#f0f0f0', '#636363', 1));
         return layer;
     },
 
     _getDynamicField(field) {
-        return { name: field, fieldsDependOn: ['NL_NAME_1'], mapper: controller._nameAsInfectionMapper(field) };
-    },
-
-    _nameAsInfectionMapper(field) {
-        return feature => {
+        return { name: field, fieldsDependOn: ['NL_NAME_1'], mapper: feature => {
             const fullName = feature.properties.get('NL_NAME_1');
-            // const simplified = fullName.split('|').pop();
             const infectionInfos = infection.getLatestInfectionInfo();
             const infectionInfo = _.find(infectionInfos.data, d => {
                 return fullName.includes(d.provinceShortName);
@@ -136,13 +95,12 @@ let controller = {
             } else {
                 return infectionInfo[field];
             }
-        };
+        }};
     },
 
     _getClassBreakStyle(field) {
-        //return ClassBreakStyle.auto('fill', field, 2000, 0, 50, '#fee8c8', '#e6550d', '#636363', '#636363');
-        const strokeColor = '#636363';
-        const strokeWidth = 1;
+        const strokeColor = config.DEFAULT_STROKE;
+        const strokeWidth = config.DEFAULT_STROKE_WIDTH;
 
         let style = new ClassBreakStyle(field);
         style.classBreaks.push({ minimum: 1, maximum: 10, style: new FillStyle('#fff5f0', strokeColor, strokeWidth) });

@@ -4,6 +4,7 @@
  */
 
 const Router = require('@koa/router');
+const mapUtils = require('../shared/mapUtils');
 const mapController = require('../controllers/mapController');
 
 /** 
@@ -39,7 +40,7 @@ router.get('/test', async ctx => {
     let source = layer.source;
     await source.open();
     let feature = await source.feature(1, 'all');
-    ctx.body = mapController.getFeatureCollection([feature]);
+    ctx.body = mapUtils.convertFeaturesToJSON([feature]);
     ctx.type = 'json';
 });
 
