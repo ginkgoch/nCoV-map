@@ -85,4 +85,16 @@ module.exports = class InfectionController {
             infectionInfo.data = infectionInfo.data.map(i => _.pick(i, fields));
         }
     }
+
+    static filterInfectionCityInfo(infectionInfo, query) {
+        let fields = ['cityName', 'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'];
+        if (query.fields !== undefined) {
+            fields = query.fields.split(',');
+        }
+
+        infectionInfo.data = _.flatMap(infectionInfo.data, p => p.cities);
+        if (!fields.includes('all')) {
+            infectionInfo.data = infectionInfo.data.map(i => _.pick(i, fields));
+        }
+    }
 }

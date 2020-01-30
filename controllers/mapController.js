@@ -14,6 +14,7 @@ require('ginkgoch-map/native/node').init();
 
 const worldFilePath = `../data/cntry02.shp`;
 const provinceFilePath = `../data/chn/gadm36_CHN_1_3857.shp`;
+const cityFilePath = `../data/chn/gadm36_CHN_2_3857.shp`;
  
 let controller = {
     getDefaultMap() {
@@ -33,12 +34,13 @@ let controller = {
     getInfectionMap() {
         return utils.getCachedMapEngine('infection', () => {
             let layerWorld = controller._getWorldLayer(worldFilePath);
-            let layerChina = controller._getProvinceLayer(false);
+            let layerChinaProvinces = controller._getProvinceLayer(false);
+            let layerChinaCities = controller._getCityLayer(false);
 
             let mapEngine = new MapEngine(256, 256);
             mapEngine.srs = new Srs('EPSG:900913');
             mapEngine.pushLayer(layerWorld);
-            mapEngine.pushLayer(layerChina);
+            mapEngine.pushLayer(layerChinaProvinces);
 
             return mapEngine;
         });
@@ -70,6 +72,11 @@ let controller = {
             layer.margin = 40;
         }
 
+        return layer;
+    },
+
+    _getCityLayer(defaultFill = true) {
+        let layer = controller._getChinaLayer(cityFilePath, defaultFill);
         return layer;
     },
 
