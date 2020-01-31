@@ -32,13 +32,17 @@ mapView.on('click', async ev => {
     }
 });
 
+axios.get('/infection/legends').then(r => {
+    leafletEx.getLegendControl(r.data).addTo(mapView);
+});
+
 function formatPopupContent(content) {
     return `
         <table class="table">
             <thead>
                 <tr>
                     <th scope="col">地区</th>
-                    <th scope="col">${content.NL_NAME_1 + (content.NL_NAME_2 ? ` (${content.NL_NAME_2})` : '')}</th>
+                    <th scope="col">${shortenName(content.NL_NAME_1) + (content.NL_NAME_2 ? ` (${shortenName(content.NL_NAME_2)})` : '')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -61,5 +65,9 @@ function formatPopupContent(content) {
             </tbody>
         </table>
     `;
+}
+
+function shortenName(name) {
+    return name.split('|').pop()
 }
 

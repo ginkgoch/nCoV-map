@@ -36,13 +36,21 @@ router.get('/maps/:name/intersection', async ctx => {
     ctx.body = mapUtils.convertFeaturesToJSON(_.flatMap(intersectedFeatures, l => l.features));
 });
 
-router.get('/test', async ctx => {
-    let mapEngine = mapController.getInfectionMap();
-    let layer = mapEngine.layer('gadm36_CHN_1');
-    let source = layer.source;
-    await source.open();
-    let feature = await source.feature(1, 'all');
-    ctx.body = mapUtils.convertFeaturesToJSON([feature]);
+router.get('/maps/infection/legends', async ctx => {
+    let breakItems = mapController._getClassBreakStyle('confirmedCount').classBreaks;
+    let values = [];
+    let colors = [];
+
+    for (let breakItem of breakItems) {
+        if (values.length === 0) {
+            values.push(breakItem.minimum);
+        }
+
+        values.push(breakItem.maximum);
+        colors.push(breakItem.style.fillStyle);
+    }
+
+    ctx.body = {values, colors};
     ctx.type = 'json';
 });
 
