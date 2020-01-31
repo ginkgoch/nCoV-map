@@ -4,6 +4,7 @@
         "Shapefile",
         "bodyparser",
         "cntry",
-        "ginkgoch"
+        "ginkgoch",
+        "latlng"
     ]
 }

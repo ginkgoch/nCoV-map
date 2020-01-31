@@ -8,7 +8,7 @@ module.exports = class MapUtils {
     static convertFeaturesToJSON(features) {
         let featureCollection = new FeatureCollection(features);
         let featuresJSON = featureCollection.toJSON();
-        return featuresJSON();
+        return featuresJSON;
     }
 
     static getCachedMapEngine(mapEngineName, createMapEngineHandler) {

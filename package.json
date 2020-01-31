@@ -11,8 +11,9 @@
   "dependencies": {
     "@koa/router": "^8.0.6",
     "axios": "^0.19.2",
+    "bootstrap": "^4.4.1",
     "canvas": "^2.6.1",
-    "ginkgoch-map": "^1.8.7",
+    "ginkgoch-map": "^1.8.11",
     "koa": "^2.11.0",
     "koa-bodyparser": "^4.2.1",
     "koa-static": "^5.0.0",

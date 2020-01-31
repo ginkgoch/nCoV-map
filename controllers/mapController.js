@@ -7,7 +7,8 @@ const utils = require('../shared/mapUtils');
 const {
     ShapefileFeatureSource, FeatureLayer,
     ClassBreakStyle, FillStyle, TextStyle,
-    MapEngine, Srs, Constants
+    MapEngine, Srs, Constants, Point, ViewportUtils,
+    Projection
 } = require('ginkgoch-map').default.all;
 
 require('ginkgoch-map/native/node').init();
@@ -18,6 +19,13 @@ const cityFilePath = `../data/chn/gadm36_CHN_2_3857.shp`;
 const SCALE_MAX_CITIES = Constants.DEFAULT_SCALES[config.ZOOM_LEVEL_CITY_MAX];
 
 let controller = {
+    getMapEngineByName(name) {
+        switch(name) {
+            case 'infection': return controller.getInfectionMap();
+            default: return controller.getDefaultMap();
+        }
+    },
+
     getDefaultMap() {
         return utils.getCachedMapEngine('default', () => {
             let layerWorld = controller._getWorldLayer(worldFilePath);
@@ -56,6 +64,24 @@ let controller = {
 
             return mapEngine;
         });
+    },
+
+    async getIntersectedFeaturesInWGS84(lat, lng, zoom, mapEngine, compress = false) {
+        let layersToQuery = ['gadm36_CHN_1_3857'];
+        if (zoom >= 6) {
+            layersToQuery = ['gadm36_CHN_2_3857'];
+        }
+        let layerFeatures = await mapEngine.intersection(new Point(lng, lat), 'WGS84', zoom, 2, false, layersToQuery);
+        let features = _.flatMap(layerFeatures, l => l.features);
+        let projection = new Projection('EPSG:900913', 'WGS84');
+        features.forEach(f => f.geometry = projection.forward(f.geometry));
+
+        if (compress) {
+            features.forEach(f => ViewportUtils.compressGeometry(f.geometry, 'WGS84', mapEngine.scales[zoom]));
+        }
+
+        
+        return layerFeatures;
     },
 
     _getWorldLayer(filePath) {
