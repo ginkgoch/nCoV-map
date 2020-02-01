@@ -1,80 +1,82 @@
-# 一张新型肺炎地区分布地图是怎么制作的？
+# Create a nCoV Coverage Map of China
 
-- [前言](#前言)
-- [让我们从环境开始](#让我们从环境开始)
-- [创建工程，添加引用](#创建工程添加引用)
-- [GIS数据](#gis数据)
-- [剩下的工作就很简单了](#剩下的工作就很简单了)
-    - [叠加世界数据](#叠加世界数据)
-    - [叠加中国数据](#叠加中国数据)
-    - [调整可视范围](#调整可视范围)
-    - [连接动态数据](#连接动态数据)
-    - [样式化地图](#样式化地图)
-- [写在最后](#写在最后)
+[中文请看这里](./README-CN.md)
+
+- [Preface](#preface)
+- [Let's start with the environment](#lets-start-with-the-environment)
+- [Create project, add references](#create-project-add-references)
+- [GIS Data](#gis-data)
+- [The rest becomes simple](#the-rest-becomes-simple)
+    - [Overlays world data](#overlays-world-data)
+    - [Overlays China Data](#overlays-china-data)
+    - [Adjust the Viewport](#adjust-the-viewport)
+    - [Connect Dynamic Data](#connect-dynamic-data)
+    - [Styling the Map](#styling-the-map)
+- [Summary](#summary)
 
 
-## 前言
-2020年刚开始，各钟不幸的消息满天飞。新型肺炎的蔓延，科比去世... 无时无刻让我感到痛楚。为了不给国家添乱，新年几天都在窝在家里。时不时拿起手机，观察一下现在病情蔓延情况。下面这张地图就是一张典型的GIS应用。
+## Preface
+The beginning of 2020 is full of unfortunate news. The spread of new pneumonia - nCoV, Kobe's gone ... It hurts me all the time. In order not to disturb the country, I stayed at home for a few days in the new year. From time to time, pick up your phone and observe the spread of the disease. The following map is a typical GIS application that helps me to know the situation.
 
 ![infection-cover-status-demo](tutorials/images/infection-cover-status-demo.png)
 
-每当我看到这张静态图时，很想要知道几个信息无法获知。
-1. 我们能通过颜色和图例比较一个省的确诊人数范围，看不到一个省具体患病人数。
-1. 由于是一张静态图，我们没法获市级数据。如果地图可以拖动，放大缩小就简单多了。
-1. 每次看到红色，心里都很焦虑。能换成其他颜色，我自己更加能接受点。
+Whenever I see this static picture, I want to know a few more information that I don't know.
+1. We can compare the range of confirmed patients in a province by color and legend. But we cannot recognize the specific number of patients in a province on this picture.
+1. Due to a static map, we cannot get city-level information. If the map can be dragged, zooming in and out, it will be much convenient.
+1. Every time I see red, I feel anxious. Can it be changed to other colors, I am more acceptable.
 
-基于这两个小功能，我准备介绍一下怎么去制作一张地图。我准备分两个阶段来做介绍。
-1. 先用最简洁的代码来生成一张静态图片。通过这个阶段，让我们认识一下`Ginkgoch`地图开发的`API`.
-1. 当我们了解了`Ginkgoch`地图开发的`API`之后，我们就把这个程序改造成地图服务，让她和知名的地图前端库`Leaflet`合并开发一个可交互的地图，集成点有趣的功能。
+Based on these two small functions, I am going to introduce how to make a map from 0, step by step. I am planning to do it in two phases.
+1. Generate a static picture with the most concise code first. Through this phase, let's get to know the API of `Ginkgoch` map development.
+1. After we learned the `API` for` Ginkgoch` map development, we transformed this program into a map service, and let it work with the well-known map front-end library `Leaflet` to build an interactive map and so on.
 
-这篇文章，我准备先从制作一张静态图片开始。
+In this article, I will kick-off with building a command-line tool to generate a static map image like I pasted above.
 
-> [`Ginkgoch`地图开发套件](https://ginkgoch.com)是一个GIS全栈开发套件。用一种语言 - `JavaScript` 就可以开发地图相关的命令行程序，地图桌面程序，以及地图服务。
+> [`Ginkgoch` mapping development kit](https://ginkgoch.com) is a GIS full stack development kit. You can develop map-related command line programs, map desktop programs, and map services with only one programming language - JavaScript.
 
-## 让我们从环境开始
-**以前开发地图应用软件**，可能需要掌握很多编程语言技能，才能胜任一个完整的项目。比如一个典型的GIS B/S应用一般会使用Java, C#或其他后端编程语言来开发后端，然后用JavaScript + HTML来开发前端展现。
+## Let's start with the environment
+**Previously developed map application software**, you may need to master a lot of programming language to be competent for a complete project. For example, a typical GIS B/S application generally uses Java, C# or other back-end programming languages to develop the back-end, and then uses JavaScript + HTML to develop the front-end presentation.
 
-今天我们使用`Ginkgoch`开发，就不再需要了解其他编程语言，用我们熟悉的JavaScript；即使是前端开发人员也可以开发后端地图应用了。追求极简开发环境的话，我们只需要2个工具。[Node.js](https://nodejs.org) （推荐8以上，或者直接安装最新版本都是兼容的）和 [vscode](https://code.visualstudio.com/).
+Today we gonna use `Ginkgoch` to develop, we no longer need to know other programming languages, instead JavaScript is the only required skill; even front-end developers can develop back-end map applications. For a minimalist development environment, we only need 2 tools.[Node.js](https://nodejs.org) (version 8 or above) [vscode](https://code.visualstudio.com/).
 
-> 这篇文章照顾新手，写的比较多。老鸟请自行过滤。勿喷。
+> This article takes care of novices and writes a lot basic content. Please ignore the content that you already familiar with.
 
-## 创建工程，添加引用
-接着，我们创建一个工程目录。用以下命令就可以了。（我个人比较喜欢使用命令行，由于平时都是用macOS做日常使用机器。所以以下命令行都是macOS执行验证的）。
+## Create project, add references
+Next, we create a project directory. Just use the following command. (I personally prefer to use the command line, because I usually use macOS for daily use of machines. So the following command lines are performed by macOS for verification).
 
 ```bash
-# 创建项目目录
+# create work folder
 cd [your workspace]
 md nCoV-map
 cd nCoV-map
 
-# 创建功能，添加引用
+# create project and add references
 npm init -y
 npm i --save ginkgoch-map canvas lodash
 
-# 新建一个文件，这个将是我们写代码的地方
+# create a new js file for code entry
 touch tutorial-01.js
 ```
 
-> 这里引用了另一个`canvas`库，是因为`Node.js`没有提供绘图API，我们只能引用一个第三方`Node.js`库来替代使用。
+> The `canvas` library is referenced here because Node.js does not provide a drawing API, we can only reference a third-party` Node.js` library instead.
 
-到这里，我们的工程已经建立好了。
+Till now, our project has been established.
 
-## GIS数据
-GIS应用里面数据是很重要的。我把她分为静态数据和动态数据。静态数据就是我们的几何图形以及她们特定的特征数据。如地区的名字等。动态数据就是我们实时关注的疫情变化。
+## GIS Data
+The data in GIS applications is very important. I divided it into static  and dynamic data. Static data is our geometry and their specific feature data. Such as the name of the area. Dynamic data is the epidemic situation that we are following in real time.
 
-一般**静态数据**比较容易找到。百度搜索中国地图数据csv, json, shapefile都可以找到。这个项目里面，我准备使用shapefile作为我的静态数据。[这里](https://github.com/ginkgoch/nCoV-map/tree/develop/data)你可以找到以下数据，我们一会儿会使用到。把上面数据下载下来以后，放到工程的`data`目录下面。
+Generally **static data** is easier to find. Searching in google with China map data csv, json, shapefile will list you lots of result. In this project, I am going to use shapefile as my static data. [Here] (https://github.com/ginkgoch/nCoV-map/tree/develop/data) You can find the following data, which we will use later. After downloading, put them under the `data` directory of the project.
 
 - chn/
-    - gadm36_CHN_1_3857.shp - 省级数据
-    - gadm36_CHN_2_3857.shp - 市级数据
-- cntry02.shp - 世界国家数据
+    - gadm36_CHN_1_3857.shp - province level data
+    - gadm36_CHN_2_3857.shp - city level data
+- cntry02.shp - world level data
 
-**动态数据**会麻烦点。我是写了一个爬虫，定时爬取。有兴趣可以私聊。不过作为例子，我放上了几份疫情数据在`data/infected`目录里面以便做示例。
+**Dynamic data** will be a bit more difficult to get. I wrote a crawler to crawled regularly. If you are interesting in it, we can chat privately. But as an example, I put a few copies of the outbreak data in the `data/infected` directory for example.
 
-## 剩下的工作就很简单了
+## The rest becomes simple
 
-### 叠加世界数据
-首先，我们定义一个函数来创建一个地图的图层，一个数据源即一个数据图层，多个数据图层叠加起来就可以构成我们期望的样式。使用`ginkgoch-map`，我们是这样定义一个图层的。
+### Overlays world data
+First, we define a function to create a map layer, a shapefile is a data layer, and multiple data layers are superimposed to form our desired map. With `ginkgoch-map`, we define a layer like this.
 
 ```javascript
 function createLayerWithDefaultStyle(filePath) {
@@ -91,7 +93,7 @@ function createLayerWithDefaultStyle(filePath) {
 }
 ```
 
-有了`layer`, 我们可以简单查看我们数据图层的样子。比如对于数据`cntry02.shp`:
+After we got `layer`, we can peek how the layer forms and we can take a thumbnail of `cntry02.shp` with following code:
 ```
 let worldLayer = createLayerWithDefaultStyle('../data/cntry02.shp');
 await worldLayer.open();
@@ -99,16 +101,16 @@ let worldImage = await worldLayer.thumbnail(512, 512);
 fs.writeFileSync(path.resolve(__dirname, './images/tutorial-01-world.png'), worldImage.toBuffer());
 ```
 
-我们通过命令行执行下面的语句。我们可以找到图片：
+Then we execute the command below, it will output an image of the layer.
 ```bash
 node tutorial-01.js
 ```
 
 ![tutorial-01-world.png](./tutorials/images/tutorial-01-world.png)
 
-### 叠加中国数据
+### Overlays China Data
 
-当然这个不是我们想要的样子，我们还需要把省份的数据叠加在上面，才能看到我们中国详细一点的数据。我们接着做。
+Definitely, this is not final result, we need to superimpose the province data for more detail. Let's move on.
 
 ```javascript
 const [imageWidth, imageHeight] = [512, 512];
@@ -128,13 +130,13 @@ let image = await mapEngine.image();
 fs.writeFileSync(path.resolve(__dirname, './images/tutorial-01-default.png'), image.toBuffer());
 ```
 
-现在再打开图片`tutorial-01-default.png`, 注意查看中国的数据已经叠加成功了。
+Let's open picture `tutorial-01-default.png`, check that the province of China are overlaps on the world map.
 
 ![tutorial-01-default.png](./tutorials/images/tutorial-01-default.png)
 
-### 调整可视范围
+### Adjust the Viewport
 
-哦？太小了~ 好，我们调整下地图的可视范围。
+Oh? Too small ~ OK, let's adjust the viewport of the map.
 
 ```javascript
 await provinceLayer.open();
@@ -147,15 +149,15 @@ fs.writeFileSync(path.resolve(__dirname, './images/tutorial-01-china.png'), imag
 
 ![tutorial-01-china.png](./tutorials/images/tutorial-01-china.png)
 
-### 连接动态数据
+### Connect Dynamic Data
 
-我们对静态数据进行了渲染，同时对中国省份级别的边框进行绘制。接下来，我们将连接动态数据，把动态的感染人数和地图对应起来。我们怎么做呢？
+We rendered the static data, while drawing borders for provinces of China. Next, we will connect dynamic infection data to map. How do we do it?
 
-首先，我们先看下静态数据的特征数据。Shapefile的特征数据存放在*.dbf文件里面。你可以选择使用你常用的工具打开dbf文件。我个人一般使用的是`shapefile viewer`来查看。参考[这里获取程序及使用说明](https://github.com/ginkgoch/node-shapefile-viewer)。
+First, let's look at the attributed data of static data. Shapefile feature data is stored in * .dbf files. You can choose to open the dbf file with your favorite tools. I personally use the `shapefile viewer` to check it out. Refer to [this project for the tool](https://github.com/ginkgoch/node-shapefile-viewer).
 
 ![china-attributes.png](./tutorials/images/china-attributes.png)
 
-`NL_NAME_1`就是我们需要的省份名字，然后我们来看看动态数据的一个片段。
+`NL_NAME_1` is the name of the province we need, and then we take a look at a snippet of dynamic data.
 
 ```json
 [
@@ -185,9 +187,9 @@ fs.writeFileSync(path.resolve(__dirname, './images/tutorial-01-china.png'), imag
             ...
 ```
 
-有趣的是，动态数据也包含省份的名字`provinceShortName`；以及感染，疑似，治愈以及死亡的人数。现在，我们要做的就是通过静态数据的`NL_NAME_1`和动态数据的`provinceShortName`相等的数据相关联。在`ginkgoch-map`里面是这样做的。
+Interestingly, the dynamic data also includes the province name `provinceShortName`; and the number of infections, suspects, cures, and deaths. Now, all we have to do is associate the static data with `NL_NAME_1` and dynamic data with` provinceShortName`. This is built-in function in `ginkgoch-map`.
 
-首先，我们定义一个函数来帮助我们定义一个关系。
+First, we define a function to help us define a relationship.
 ```javascript
 /**
  * field - the dynamic field value to return.
@@ -211,7 +213,7 @@ function _getDynamicFieldForProvince(field, infectedData) {
 }
 ```
 
-然后建立4个列的映射函数。
+Then build a mapping function for the 4 columns.
 ```javascript
 function connectDynamicData(layer) {
     // load dynamic data
@@ -227,19 +229,19 @@ function connectDynamicData(layer) {
 }
 ```
 
-最后，我们调用这个函数进行映射。
+Finally, we call this function for mapping.
 ```javascript
-//...省略前后重复的代码
+//...omit the surrounded code
 let provinceLayer = createLayerWithDefaultStyle('../data/chn/gadm36_CHN_1_3857.shp');
 connectDynamicData(provinceLayer);
 ```
 
-至此，我们可以认为`provinceLayer`已经包含了动态数据。她将在需要的时候动态的去通过映射关系找到需要的数据来使用。
+At this point, we can assume that `provinceLayer` already contains dynamic data. It will dynamically load the mapping relationship to find the required data when necessary.
 
-### 样式化地图
-做到这里，大家可以去休息一下。迎接最后一步：地图样式化。我们把感染人数分成几个等级，根据等级渲染不同的颜色来表示严重程度。比较好的是，`ginkgoch-map`提供了对应的API来渲染。
+### Styling the Map
+We are moving into the last step: Styling the map. We break down the number of infected people into several levels, and render different colors according to the levels to indicate the severity. Better yet, `ginkgoch-map` provides a corresponding API for rendering.
 
-我们先定义个函数来创建样式化对象`Style`.
+We first define a function to create a styled object `Style`.
 
 ```javascript
 function _getClassBreakStyle(field) {
@@ -258,12 +260,13 @@ function _getClassBreakStyle(field) {
 }
 ```
 
-再应用到`layer`上即可看到效果。
+Then apply it to the `layer`, and it works.
+
 ```javascript
 let confirmedCountStyle = _getClassBreakStyle('confirmedCount');
 provinceLayer.styles.push(confirmedCountStyle);
 
-// 顺便我们把文字渲染上去，即可完成。
+// we also add the text style for labeling
 let provinceLabelStyle = new GK.TextStyle('[NL_NAME_1]', 'black', 'Arial 12px');
 provinceLabelStyle.lineWidth = 2;
 provinceLabelStyle.strokeStyle = 'white';
@@ -273,7 +276,7 @@ provinceLayer.styles.push(provinceLabelStyle);
 
 ![tutorial-01-china-confirmed.png](./tutorials/images/tutorial-01-china-confirmed.png)
 
-是不是很有趣？我们现在可以随意替换调色板，让她变成蓝色系的。替换这一句即可。
+Isn't it interesting? We are now free to replace the color palette and make it blue. Just replace this code.
 ```javascript
 // let activePallette = ['#fff5f0', '#fee0d2', '#fcbba1', '#fc9272', '#fb6a4a', '#ef3b2c', '#cb181d', '#67000d'];
 let activePallette = ['#f7fbff', '#deebf7', '#c6dbef', '#9ecae1', '#6baed6', '#4292c6', '#2171b5', '#08519c'];
@@ -281,9 +284,9 @@ let activePallette = ['#f7fbff', '#deebf7', '#c6dbef', '#9ecae1', '#6baed6', '#4
 
 ![tutorial-01-final.png](./tutorials/images/tutorial-01-final.png)
 
-## 写在最后
-最终的代码可以在这里下载：https://github.com/ginkgoch/nCoV-map/tree/develop/tutorials
+## Summary
+You could find all the code implementation at: https://github.com/ginkgoch/nCoV-map/tree/develop/tutorials
 
-看起来很多，大多数代码都是业务代码，和对样式的设置。了解起来还是挺简单的。今天就到这里，后面有时间，我再写一篇搭建一个地图服务，制作一个可以交互的地图应用。有问题可以随时联系我,[ginkgoch@outlook.com](mailto:ginkgoch@outlook.com)。或者到我的网站[ginkgoch.com](https://ginkgoch.com)上去留言。
+Looks like a lot work to do, most of the code is business code, and style settings. It's quite simple to understand. That's it for today. When I have time later, I will write another article to migrate this code to a map service as well as an interactive map application for browser. Feel free to contact me by [ginkgoch@outlook.com](mailto:ginkgoch@outlook.com) or leave me message at my website [ginkgoch.com](https://ginkgoch.com).
 
 Happy Mapping!
