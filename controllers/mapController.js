@@ -16,6 +16,7 @@ require('ginkgoch-map/native/node').init();
 const worldFilePath = `../data/cntry02.shp`;
 const provinceFilePath = `../data/chn/gadm36_CHN_1_3857.shp`;
 const cityFilePath = `../data/chn/gadm36_CHN_2_3857.shp`;
+const taiwanFilePath = `../data/chn/TWN_adm1_3857.shp`;
 const SCALE_MAX_CITIES = Constants.DEFAULT_SCALES[config.ZOOM_LEVEL_CITY_MAX];
 
 let controller = {
@@ -49,7 +50,8 @@ let controller = {
         return utils.getCachedMapEngine('infection', () => {
             let layerWorld = controller._getWorldLayer(worldFilePath);
             let layerChinaProvinces = controller._getProvinceLayer(false);
-            let layerChinaCities = controller._getCityLayer(false);
+            let layerChinaCities = controller._getCityLayer();
+            let layerChinaTaiwan = controller._getTaiwanLayer();
 
             let mapEngine = new MapEngine(256, 256);
             mapEngine.renderContextOptions.antialias = config.ANTIALIAS;
@@ -61,6 +63,7 @@ let controller = {
             mapEngine.pushLayer(layerWorld);
             mapEngine.pushLayer(layerChinaProvinces);
             mapEngine.pushLayer(layerChinaCities);
+            mapEngine.pushLayer(layerChinaTaiwan);
 
             return mapEngine;
         });
@@ -136,6 +139,22 @@ let controller = {
         return layer;
     },
 
+    _getTaiwanLayer() {
+        let layer = controller._getChinaLayer(taiwanFilePath);
+        let source = layer.source;
+        source.dynamicFields.push(controller._getDynamicFieldForTaiwan('confirmedCount'));
+        layer.styles.push(controller._getClassBreakStyle('confirmedCount'));
+
+        let textStyle = new TextStyle('[NL_NAME_2]', 'black', TextStyle.normalizeFont('ARIAL', config.FONT_SIZE, 'bolder'));
+        textStyle.location = config.TEXT_LOCATION;
+        textStyle.lineWidth = 2;
+        textStyle.strokeStyle = 'white';
+        layer.styles.push(textStyle);
+        layer.margin = 40;
+
+        return layer;
+    },
+
     _getChinaLayer(filePath, defaultFill = true) {
         filePath = path.resolve(__dirname, filePath);
         let source = new ShapefileFeatureSource(filePath);
@@ -159,6 +178,14 @@ let controller = {
                 } else {
                     return infectionInfo[field];
                 }
+            }
+        };
+    },
+
+    _getDynamicFieldForTaiwan(field) {
+        return {
+            name: field, fieldsDependOn: [], mapper: feature => {
+                return 5;
             }
         };
     },
